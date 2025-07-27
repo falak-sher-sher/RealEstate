@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useSelector } from 'react-redux';
 import { useRef } from 'react';
 import { useDispatch } from 'react-redux';
-import { UpdateUserFailure,UpdateUserStart,UpdateUserSuccess,deleteUserFailure,deleteUserSuccess } from '../user/userSlice.js';
+import { UpdateUserFailure,UpdateUserStart,UpdateUserSuccess,deleteUserFailure,deleteUserSuccess, signOutUserFailure, signOutUserStart, signOutUserSuccess } from '../user/userSlice.js';
 export default function Profile() {
   const fileRef = useRef(null);
   const [formData,setFormData]=useState({})
@@ -56,6 +56,30 @@ export default function Profile() {
     dispatch(deleteUserFailure(error.message));
   }
 };
+const handleSignOut = async () => {
+  dispatch(signOutUserStart());
+  try {
+    const res = await fetch('/Backend/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const data = await res.json();
+
+    if (data.success === false) {
+      dispatch(signOutUserFailure(data.message));
+      return;
+    }
+
+    dispatch(signOutUserSuccess(data));
+  } catch (error) {
+    dispatch(signOutUserFailure(error.message));
+  }
+};
+
 
   return (
     <div className='p-3 max-w-lg mx-auto'>
@@ -72,7 +96,7 @@ export default function Profile() {
       </form>
       <div className='flex justify-between mt-5'>
         <span onClick={handleDeleteUser} className='text-red-700 cursor-pointer'>Delete account</span>
-         <span className='text-red-700 cursor-pointer'>Logout</span>
+         <span onClick={handleSignOut} className='text-red-700 cursor-pointer'>Logout</span>
       </div>
       <p className='text-red-700 mt-5'>{error?error:" "}</p>
       <p className='text-green-700 mt-5'>{updateSuccess?'Updated successfully':" "}</p>
