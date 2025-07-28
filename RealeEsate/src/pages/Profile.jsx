@@ -130,6 +130,44 @@ const handleShowListings = async()=>{
     setShowListingsLoading(false);
   }
 }
+const handleDeleteListing = async (listingId) => {
+  try {
+    console.log('Deleting listing:', listingId);
+    
+    const res = await fetch(`/Backend/listing/delete/${listingId}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    console.log('Delete response status:', res.status);
+    
+    if (res.status === 401) {
+      console.log('Authentication failed - user not logged in or token expired');
+      alert('Authentication failed. Please sign in again.');
+      return;
+    }
+    
+    const data = await res.json();
+    console.log('Delete response data:', data);
+    
+    if (data.success === false) {
+      console.log('Delete failed:', data.message);
+      alert(`Failed to delete listing: ${data.message}`);
+      return;
+    }
+    
+    // Remove the deleted listing from the state
+    setUserListings(userListings.filter((listing) => listing._id !== listingId));
+    console.log('Listing deleted successfully');
+    
+  } catch (error) {
+    console.log('Error deleting listing:', error.message);
+    alert(`Error deleting listing: ${error.message}`);
+  }
+}
 
   return (
     <div className='p-3 max-w-lg mx-auto'>
@@ -151,7 +189,7 @@ const handleShowListings = async()=>{
       </div>
       <p className='text-red-700 mt-5'>{error?error:" "}</p>
       <p className='text-green-700 mt-5'>{updateSuccess?'Updated successfully':" "}</p>
-      <button onClick={handleShowListings} className='ml-45 bg-green-700 text-white p-3 rounded-lg hover:opacity-95 cursor-pointer text-green-700 text-center'>Show Listing</button>
+      <button onClick={handleShowListings} className='ml-45 bg-green-700 p-3 rounded-lg hover:opacity-95 cursor-pointer text-white text-center'>Show Listing</button>
       <p className='text-red-700 mt-5'>{showListingError?'Error showing listings':" "}</p>
       {userListings && userListings.length > 0 && (
   <div className='mt-5 flex flex-col gap-4 '>
@@ -174,7 +212,7 @@ const handleShowListings = async()=>{
         </p>
 
         <div className='flex gap-2 flex-col items-center'>
-          <button className='text-red-700 uppercase cursor-pointer'>Delete</button>
+          <button onClick={()=>handleDeleteListing(listing._id)} className='text-red-700 uppercase cursor-pointer'>Delete</button>
           <button className='text-green-700 uppercase cursor-pointer'>Edit</button>
         </div>
       </div>
