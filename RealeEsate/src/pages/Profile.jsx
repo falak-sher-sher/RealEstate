@@ -9,6 +9,11 @@ export default function Profile() {
   const [formData,setFormData]=useState({})
   const dispatch = useDispatch();
   const [updateSuccess,setUpdateSuccess]=useState(false);
+  const [showListingError, setShowListingError] = useState(false);
+  
+  // FIXED: Added missing state variables for listings functionality
+  const [userListings, setUserListings] = useState([]);
+  const [showListingsLoading, setShowListingsLoading] = useState(false);
   console.log(formData)
   const { currentUser,loading ,error} = useSelector((state) => state.user);
   const handleChange = (e) => {
@@ -80,7 +85,51 @@ const handleSignOut = async () => {
     dispatch(signOutUserFailure(error.message));
   }
 };
-
+// FIXED: Updated handleShowListings to use correct route and display listings
+const handleShowListings = async()=>{
+  try{
+    setShowListingError(false);
+    setShowListingsLoading(true);
+    
+    // FIXED: Use the correct route with proper authentication headers
+    const res = await fetch(`/Backend/listing/user/${currentUser._id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // Important: send cookies for authentication
+    });
+    
+    const data = await res.json();
+    
+    // FIXED: Better error handling and debugging
+    console.log('Response status:', res.status);
+    console.log('Response data:', data);
+    
+    if(res.status === 401) {
+      console.log('Authentication failed - user not logged in or token expired');
+      setShowListingError('Authentication failed. Please sign in again.');
+      setShowListingsLoading(false);
+      return;
+    }
+    
+    if(data.success === false){
+      console.log('Request failed:', data.message);
+      setShowListingError(data.message || 'Failed to fetch listings');
+      setShowListingsLoading(false);
+      return;
+    }
+    
+    console.log('User listings:', data);
+    setUserListings(data);
+    setShowListingsLoading(false);
+    
+  }catch(error){
+    console.log('Error fetching listings:', error);
+    setShowListingError(true);
+    setShowListingsLoading(false);
+  }
+}
 
   return (
     <div className='p-3 max-w-lg mx-auto'>
@@ -102,7 +151,36 @@ const handleSignOut = async () => {
       </div>
       <p className='text-red-700 mt-5'>{error?error:" "}</p>
       <p className='text-green-700 mt-5'>{updateSuccess?'Updated successfully':" "}</p>
+      <button onClick={handleShowListings} className='ml-45 bg-green-700 text-white p-3 rounded-lg hover:opacity-95 cursor-pointer text-green-700 text-center'>Show Listing</button>
+      <p className='text-red-700 mt-5'>{showListingError?'Error showing listings':" "}</p>
+      {userListings && userListings.length > 0 && (
+  <div className='mt-5 flex flex-col gap-4 '>
+    <h1 className='text-3xl font-semibold text-center my-7'>Your Listings</h1>
+    {userListings.map((listing) => (
+      <div
+        key={listing._id}
+        className='bg-yellow-100 p-3 rounded-lg flex justify-between items-center'
+      >
+        <Link to={`/listing/${listing._id}`}>
+          <img
+            src={listing.imageUrls[0]}
+            alt='Listing images'
+            className='w-40 h-40 object-cover rounded-lg'
+          />
+        </Link>
 
+        <p className='truncate font-semibold text-lg text-slate-700 cursor-pointer hover:underline'>
+          {listing.name}
+        </p>
+
+        <div className='flex gap-2 flex-col items-center'>
+          <button className='text-red-700 uppercase cursor-pointer'>Delete</button>
+          <button className='text-green-700 uppercase cursor-pointer'>Edit</button>
+        </div>
       </div>
-  )
-}
+    ))}
+  </div>
+)}
+    </div>
+  );
+};
